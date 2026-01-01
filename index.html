@@ -1,102 +1,106 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Fullscreen Video Player</title>
+<meta charset="UTF-8">
+<title>Fullscreen Player</title>
 
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      background: black;
-      height: 100%;
-      overflow: hidden;
-    }
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: black;
+    height: 100%;
+    overflow: hidden;
+  }
 
-    .player {
-      position: relative;
-      width: 100vw;
-      height: 100vh;
-      background: black;
-    }
+  .player {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+  }
 
-    video {
-      width: 100%;
-      height: 100%;
-      object-fit: contain; /* change to cover if you want zoom */
-      background: black;
-    }
+  video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* change to cover if needed */
+    background: black;
+  }
 
-    .custom-controls {
-      position: absolute;
-      bottom: 40px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 20px;
-      opacity: 1;
-      transition: opacity 0.5s ease;
-    }
+  .seek-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 22px;
+    padding: 18px 22px;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    opacity: 1;
+    transition: opacity 0.4s;
+  }
 
-    .custom-controls.hide {
-      opacity: 0;
-      pointer-events: none;
-    }
+  .back {
+    left: 30px;
+  }
 
-    button {
-      font-size: 18px;
-      padding: 12px 22px;
-      border: none;
-      border-radius: 6px;
-      background: rgba(255,255,255,0.9);
-      cursor: pointer;
-    }
-  </style>
+  .forward {
+    right: 30px;
+  }
 
+  .hide {
+    opacity: 0;
+    pointer-events: none;
+  }
+</style>
 </head>
+
 <body>
 
 <div class="player" id="player">
 
   <video id="video" controls>
     <source src="https://streambot-e9ea39644697.herokuapp.com/AgADJx9712">
-    Video not supported
+    Not supported
   </video>
 
-  <div class="custom-controls" id="controls">
-    <button onclick="seek(-10)">⏪ 10s</button>
-    <button onclick="seek(10)">⏩ 10s</button>
-  </div>
+  <button class="seek-btn back" id="backBtn">⏪ 10s</button>
+  <button class="seek-btn forward" id="fwdBtn">⏩ 10s</button>
 
 </div>
 
 <script>
   const video = document.getElementById("video");
-  const controls = document.getElementById("controls");
+  const backBtn = document.getElementById("backBtn");
+  const fwdBtn = document.getElementById("fwdBtn");
   const player = document.getElementById("player");
 
-  let hideTimer;
+  let timer;
 
-  function seek(seconds) {
-    video.currentTime += seconds;
-    showControls();
+  function seek(sec) {
+    video.currentTime += sec;
+    showButtons();
   }
 
-  function showControls() {
-    controls.classList.remove("hide");
-    clearTimeout(hideTimer);
-    hideTimer = setTimeout(() => {
-      controls.classList.add("hide");
-    }, 3000); // hide after 3 seconds
+  backBtn.onclick = () => seek(-10);
+  fwdBtn.onclick = () => seek(10);
+
+  function showButtons() {
+    backBtn.classList.remove("hide");
+    fwdBtn.classList.remove("hide");
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      backBtn.classList.add("hide");
+      fwdBtn.classList.add("hide");
+    }, 3000);
   }
 
-  // Show controls on any interaction
-  ["mousemove", "touchstart", "click"].forEach(event => {
-    player.addEventListener(event, showControls);
+  ["click", "mousemove", "touchstart"].forEach(e => {
+    player.addEventListener(e, showButtons);
   });
 
-  // Initial auto-hide
-  showControls();
+  showButtons();
 </script>
 
 </body>
