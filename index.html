@@ -2,17 +2,15 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>TV Player</title>
-
+<title>Stable Video Player</title>
 <style>
-html,body{
+body{
   margin:0;
-  padding:0;
   background:black;
-  height:100%;
   overflow:hidden;
+  font-family:Arial;
 }
-.player{
+#container{
   position:relative;
   width:100vw;
   height:100vh;
@@ -20,121 +18,143 @@ html,body{
 video{
   width:100%;
   height:100%;
-  object-fit:contain;
+  object-fit: cover;   /* This removes black bars */
   background:black;
 }
-.btn{
-  position:absolute;
-  background:rgba(0,0,0,0.6);
-  color:white;
-  border:none;
-  border-radius:50%;
-  font-size:22px;
-  padding:18px;
-}
-.back{left:30px;top:50%;transform:translateY(-50%);}
-.forward{right:30px;top:50%;transform:translateY(-50%);}
-.center{left:50%;top:50%;transform:translate(-50%,-50%);}
-
-.minute-box{
+#controls{
   position:absolute;
   bottom:30px;
   left:50%;
   transform:translateX(-50%);
-  background:rgba(0,0,0,0.6);
-  padding:10px;
-  border-radius:8px;
-  color:white;
+  background:rgba(0,0,0,0.8);
+  padding:15px;
+  border-radius:12px;
+  display:flex;
+  gap:10px;
+  align-items:center;
+  transition:opacity 0.3s;
 }
-
-.hide{
+button, select, input{
+  font-size:16px;
+  padding:6px 10px;
+}
+.hidden{
   opacity:0;
-  pointer-events:none;
-  transition:0.3s;
 }
 </style>
 </head>
-
 <body>
 
-<div class="player" id="player">
+<div id="container">
+  <video id="video" playsinline>
+    <source src="https://file-to-link-2-b9adb11c51b5.herokuapp.com/dl/6a4219d5a74c85c85ce6427b" type="video/mp4">
+  </video>
 
-<video id="video" playsinline webkit-playsinline>
-  <source src="https://file-to-link-x-c97f657694b4.herokuapp.com/dl/6984cd212b4ec5bd33819823" type="video/mp4">
-</video>
+  <div id="controls">
+    <button onclick="backward()">⏪ 10s</button>
+    <button onclick="togglePlay()" id="playBtn">▶</button>
+    <button onclick="forward()">10s ⏩</button>
 
-<button class="btn back" onclick="seek(-10)">⏪</button>
-<button class="btn center" id="playBtn" onclick="togglePlay()">▶</button>
-<button class="btn forward" onclick="seek(10)">⏩</button>
+    <select onchange="changeSpeed(this.value)">
+      <option value="0.5">0.5x</option>
+      <option value="1" selected>1x</option>
+      <option value="1.5">1.5x</option>
+      <option value="2">2x</option>
+    </select>
 
-<div class="minute-box" id="minuteBox">
-  <input type="number" id="minuteInput" placeholder="Minute">
-  <button onclick="jump()">Go</button>
-</div>
+    <input type="number" id="minuteInput" placeholder="Minute (e.g 120)" style="width:150px;">
+    <button onclick="jumpToMinute()">Go</button>
 
+    <button onclick="toggleFullscreen()">⛶</button>
+  </div>
 </div>
 
 <script>
-var video=document.getElementById("video");
-var playBtn=document.getElementById("playBtn");
-var minuteBox=document.getElementById("minuteBox");
-var player=document.getElementById("player");
-var timer;
+var video = document.getElementById("video");
+var controls = document.getElementById("controls");
+var playBtn = document.getElementById("playBtn");
+var hideTimer;
 
-/* PLAY */
+// ✅ PLAY / PAUSE
 function togglePlay(){
   if(video.paused){
-    video.play().catch(()=>{});
+    video.play();
     playBtn.innerHTML="⏸";
-  }else{
+  } else {
     video.pause();
     playBtn.innerHTML="▶";
   }
-  show();
 }
 
-/* SEEK */
-function seek(s){
-  if(video.readyState>=1){
-    video.currentTime+=s;
+// ✅ FORWARD
+function forward(){
+  if(video.readyState >= 1){
+    video.currentTime = video.currentTime + 10;
   }
-  show();
 }
 
-/* JUMP */
-function jump(){
-  var m=parseFloat(document.getElementById("minuteInput").value);
+// ✅ BACKWARD
+function backward(){
+  if(video.readyState >= 1){
+    video.currentTime = Math.max(0, video.currentTime - 10);
+  }
+}
+
+// ✅ SPEED
+function changeSpeed(speed){
+  video.playbackRate = speed;
+}
+
+// ✅ SAFE JUMP TO MINUTE (Mobile Safe)
+function jumpToMinute(){
+  var m = parseFloat(document.getElementById("minuteInput").value);
   if(!isNaN(m)){
-    video.currentTime=m*60;
-    video.play().catch(()=>{});
+    if(video.readyState >= 1){
+      video.currentTime = m * 60;
+      video.play();
+    } else {
+      video.addEventListener("loadedmetadata", function(){
+        video.currentTime = m * 60;
+        video.play();
+      }, {once:true});
+    }
   }
-  show();
 }
 
-/* AUTO HIDE 10s */
-function show(){
-  minuteBox.classList.remove("hide");
-  playBtn.classList.remove("hide");
-  clearTimeout(timer);
-  timer=setTimeout(()=>{
-    minuteBox.classList.add("hide");
-    playBtn.classList.add("hide");
-  },10000);
+// ✅ FULLSCREEN
+function toggleFullscreen(){
+  if(!document.fullscreenElement){
+    document.documentElement.requestFullscreen();
+  } else {
+    document.exitFullscreen();
+  }
 }
 
-/* REMOTE */
-document.addEventListener("keydown",e=>{
-  show();
-  if(e.key==="ArrowLeft")seek(-10);
-  if(e.key==="ArrowRight")seek(10);
-  if(e.key==="Enter")togglePlay();
+// ✅ KEYBOARD / TV REMOTE SUPPORT
+document.addEventListener("keydown", function(e){
+  switch(e.keyCode){
+    case 37: backward(); break;  // Left
+    case 39: forward(); break;   // Right
+    case 13: togglePlay(); break; // OK
+    case 32: togglePlay(); break; // Space
+  }
+  showControls();
 });
 
-["click","mousemove","touchstart"].forEach(e=>{
-  player.addEventListener(e,show);
-});
+// ✅ AUTO HIDE CONTROLS
+function showControls(){
+  controls.classList.remove("hidden");
+  clearTimeout(hideTimer);
+  hideTimer = setTimeout(function(){
+    controls.classList.add("hidden");
+  }, 5000);
+}
 
-show();
+document.addEventListener("mousemove", showControls);
+document.addEventListener("touchstart", showControls);
+video.addEventListener("click", togglePlay);
+
+showControls();
 </script>
 
 </body>
