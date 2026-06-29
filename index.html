@@ -2,75 +2,55 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>TV Video Player</title>
+<title>TV Player</title>
 
 <style>
-html, body {
-  margin: 0;
-  padding: 0;
-  background: black;
-  height: 100%;
-  overflow: hidden;
+html,body{
+  margin:0;
+  padding:0;
+  background:black;
+  height:100%;
+  overflow:hidden;
+}
+.player{
+  position:relative;
+  width:100vw;
+  height:100vh;
+}
+video{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  background:black;
+}
+.btn{
+  position:absolute;
+  background:rgba(0,0,0,0.6);
+  color:white;
+  border:none;
+  border-radius:50%;
+  font-size:22px;
+  padding:18px;
+}
+.back{left:30px;top:50%;transform:translateY(-50%);}
+.forward{right:30px;top:50%;transform:translateY(-50%);}
+.center{left:50%;top:50%;transform:translate(-50%,-50%);}
+
+.minute-box{
+  position:absolute;
+  bottom:30px;
+  left:50%;
+  transform:translateX(-50%);
+  background:rgba(0,0,0,0.6);
+  padding:10px;
+  border-radius:8px;
+  color:white;
 }
 
-.player {
-  position: relative;
-  width: 100vw;
-  height: 100vh;
-  background: black;
-}
-
-video {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  background: black;
-}
-
-/* Buttons */
-.btn {
-  position: absolute;
-  background: rgba(0,0,0,0.65);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  font-size: 22px;
-  padding: 18px;
-  cursor: pointer;
-}
-
-.back { left: 30px; top: 50%; transform: translateY(-50%); }
-.forward { right: 30px; top: 50%; transform: translateY(-50%); }
-.center { left: 50%; top: 50%; transform: translate(-50%, -50%); }
-
-/* Minute Skip Box */
-.minute-box {
-  position: absolute;
-  bottom: 30px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  background: rgba(0,0,0,0.6);
-  padding: 10px 14px;
-  border-radius: 8px;
-  color: white;
-  font-size: 16px;
-}
-
-.minute-box input {
-  width: 70px;
-  padding: 5px;
-  font-size: 16px;
-  text-align: center;
-}
-
-/* Hide */
-.hide {
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.4s;
+.hide{
+  opacity:0;
+  pointer-events:none;
+  transition:0.3s;
 }
 </style>
 </head>
@@ -79,101 +59,82 @@ video {
 
 <div class="player" id="player">
 
-  <video id="video">
-    <source src="https://file-to-link-x-c97f657694b4.herokuapp.com/dl/6984cd212b4ec5bd33819823">
-  </video>
+<video id="video" playsinline webkit-playsinline>
+  <source src="https://file-to-link-x-c97f657694b4.herokuapp.com/dl/6984cd212b4ec5bd33819823" type="video/mp4">
+</video>
 
-  <!-- Seek -->
-  <button class="btn back" id="back">⏪</button>
-  <button class="btn center" id="playPause">▶</button>
-  <button class="btn forward" id="forward">⏩</button>
+<button class="btn back" onclick="seek(-10)">⏪</button>
+<button class="btn center" id="playBtn" onclick="togglePlay()">▶</button>
+<button class="btn forward" onclick="seek(10)">⏩</button>
 
-  <!-- Minute Skip -->
-  <div class="minute-box" id="minuteBox">
-    Minute:
-    <input type="number" id="minuteInput" min="0">
-    <button onclick="jumpToMinute()">Go</button>
-  </div>
+<div class="minute-box" id="minuteBox">
+  <input type="number" id="minuteInput" placeholder="Minute">
+  <button onclick="jump()">Go</button>
+</div>
 
 </div>
 
 <script>
-const video = document.getElementById("video");
-const back = document.getElementById("back");
-const forward = document.getElementById("forward");
-const playPause = document.getElementById("playPause");
-const minuteBox = document.getElementById("minuteBox");
-const minuteInput = document.getElementById("minuteInput");
-const player = document.getElementById("player");
+var video=document.getElementById("video");
+var playBtn=document.getElementById("playBtn");
+var minuteBox=document.getElementById("minuteBox");
+var player=document.getElementById("player");
+var timer;
 
-let timer;
-
-/* Seek */
-back.onclick = () => seek(-10);
-forward.onclick = () => seek(10);
-
-function seek(sec) {
-  video.currentTime += sec;
-  showControls();
-}
-
-/* Play / Pause */
-playPause.onclick = togglePlay;
-
-function togglePlay() {
-  video.paused ? video.play() : video.pause();
-  updateIcon();
-  showControls();
-}
-
-function updateIcon() {
-  playPause.textContent = video.paused ? "▶" : "⏸";
-}
-
-/* Jump to Minute (Safe) */
-function jumpToMinute() {
-  let m = parseFloat(minuteInput.value);
-  if (!isNaN(m)) {
-    if (video.readyState >= 1) {
-      video.currentTime = m * 60;
-      video.play();
-    } else {
-      video.addEventListener("loadedmetadata", function () {
-        video.currentTime = m * 60;
-        video.play();
-      }, { once: true });
-    }
+/* PLAY */
+function togglePlay(){
+  if(video.paused){
+    video.play().catch(()=>{});
+    playBtn.innerHTML="⏸";
+  }else{
+    video.pause();
+    playBtn.innerHTML="▶";
   }
-  showControls();
+  show();
 }
 
-/* Auto hide after 10 sec */
-function showControls() {
-  [back, forward, playPause, minuteBox].forEach(el => el.classList.remove("hide"));
+/* SEEK */
+function seek(s){
+  if(video.readyState>=1){
+    video.currentTime+=s;
+  }
+  show();
+}
+
+/* JUMP */
+function jump(){
+  var m=parseFloat(document.getElementById("minuteInput").value);
+  if(!isNaN(m)){
+    video.currentTime=m*60;
+    video.play().catch(()=>{});
+  }
+  show();
+}
+
+/* AUTO HIDE 10s */
+function show(){
+  minuteBox.classList.remove("hide");
+  playBtn.classList.remove("hide");
   clearTimeout(timer);
-  timer = setTimeout(() => {
-    [back, forward, playPause, minuteBox].forEach(el => el.classList.add("hide"));
-  }, 10000);   // ✅ 10 seconds
+  timer=setTimeout(()=>{
+    minuteBox.classList.add("hide");
+    playBtn.classList.add("hide");
+  },10000);
 }
 
-/* Remote keys */
-document.addEventListener("keydown", (e) => {
-  showControls();
-  if (e.key === "ArrowLeft") seek(-10);
-  if (e.key === "ArrowRight") seek(10);
-  if (e.key === "Enter") togglePlay();
+/* REMOTE */
+document.addEventListener("keydown",e=>{
+  show();
+  if(e.key==="ArrowLeft")seek(-10);
+  if(e.key==="ArrowRight")seek(10);
+  if(e.key==="Enter")togglePlay();
 });
 
-/* Sync icon */
-video.addEventListener("play", updateIcon);
-video.addEventListener("pause", updateIcon);
-
-/* Interaction */
 ["click","mousemove","touchstart"].forEach(e=>{
-  player.addEventListener(e, showControls);
+  player.addEventListener(e,show);
 });
 
-showControls();
+show();
 </script>
 
 </body>
